@@ -1,17 +1,34 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart'
+    hide ChangeNotifierProvider;
 import 'package:google_fonts/google_fonts.dart';
-import 'package:lucide_icons/lucide_icons.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:provider/provider.dart';
 
 import 'features/ai_assistant/presentation/ai_assistant_page.dart';
 import 'features/alerts/presentation/alerts_page.dart';
 import 'features/analytics/presentation/analytics_page.dart';
+import 'features/crop_health/presentation/crop_health_page.dart';
+import 'features/dashboard/presentation/dashboard_page.dart';
+import 'features/drone_inspection/presentation/drone_inspection_view.dart';
+import 'features/farm_operations/presentation/farm_operations_page.dart';
+import 'features/finance/presentation/finance_page.dart';
+import 'features/geospatial/presentation/geospatial_page.dart';
+import 'features/government/presentation/government_page.dart';
 import 'features/home/presentation/home_page.dart';
+import 'features/irrigation/presentation/farmer_irrigation_view.dart';
+import 'features/irrigation/presentation/government_irrigation_view.dart';
 import 'features/logistics/presentation/logistics_page.dart';
 import 'features/marketplace/presentation/marketplace_page.dart';
 import 'features/orders/presentation/orders_page.dart';
 import 'features/payments/presentation/payments_page.dart';
+import 'features/satellite/presentation/satellites_page.dart';
 import 'features/settings/presentation/settings_page.dart';
+import 'features/trade/presentation/trade_page.dart';
+import 'features/traceability/presentation/traceability_page.dart';
+import 'features/weather/data/mock_weather_repository.dart';
+import 'features/weather/presentation/weather_page.dart';
+import 'features/weather/presentation/weather_provider.dart';
 import 'state/app_state.dart';
 
 class AppShell extends ConsumerWidget {
@@ -24,99 +41,149 @@ class AppShell extends ConsumerWidget {
     final width = MediaQuery.of(context).size.width;
     final isDesktop = width >= 900;
 
-    final pages = const [
-      HomePage(), // index 0: Home
-      MarketplacePage(), // index 1: Marketplace
-      AssistantPage(), // index 2: Chats (AI Assistant)
-      AnalyticsPage(), // index 3: Analytics
-      OrdersPage(), // index 4: Orders
-      LogisticsPage(), // index 5: Transport
-      PaymentsPage(), // index 6: Finance/Payments
-      AlertsPage(), // index 7: Notifications
-      SettingsPage(), // index 8: Settings
+    final pages = [
+      const HomePage(), // index 0: Home
+      const MarketplacePage(), // index 1: Marketplace
+      const AssistantPage(), // index 2: Chats (AI Assistant)
+      const AnalyticsPage(), // index 3: Analytics
+      const OrdersPage(), // index 4: Orders
+      const LogisticsPage(), // index 5: Logistics
+      const PaymentsPage(), // index 6: Payments
+      const AlertsPage(), // index 7: Notifications
+      const GovernmentIrrigationView(), // index 8: Irrigation
+      const FarmerIrrigationView(), // index 9: Farmer Irrigation
+      const DroneInspectionView(), // index 10: Drone Inspection
+      const FarmOperationsPage(), // index 11: Farm Operations
+      const DashboardPage(), // index 12: Dashboard
+      const GeospatialPage(), // index 13: Geospatial
+      const CropHealthPage(), // index 14: Crop Health
+      const TraceabilityPage(), // index 15: Traceability
+      const FinancePage(), // index 16: Finance
+      const WeatherPage(), // index 17: Weather
+      const GovernmentPage(), // index 18: Government
+      const TradePage(), // index 19: Trade
+      const SatellitesPage(), // index 20: Satellite
+      const SettingsPage(), // index 21: Settings
     ];
 
-    final sidebar = Sidebar(
-      selectedIndex: state.navIndex,
-      onSelect: (index) {
-        notifier.setNavIndex(index);
-        if (!isDesktop) {
-          Navigator.pop(context); // Close drawer on mobile
-        }
+    return ChangeNotifierProvider<WeatherProvider>(
+      create: (_) {
+        final provider = WeatherProvider(repository: MockWeatherRepository());
+        provider.loadWeather();
+        return provider;
       },
-    );
-
-    if (isDesktop) {
-      return Scaffold(
-        body: Row(
-          children: [
-            sidebar,
-            const VerticalDivider(width: 1, color: Colors.black12),
-            Expanded(
-              child: IndexedStack(
-                index: state.navIndex,
-                children: pages,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Verdi'),
-        actions: [
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.search),
-          ),
-          IconButton(
-            onPressed: () {
-              notifier.setNavIndex(7); // Go to notifications/alerts
+      child: Builder(
+        builder: (context) {
+          final alertCount =
+              context.watch<WeatherProvider>().weather?.alerts.length ?? 0;
+          final sidebar = Sidebar(
+            selectedIndex: state.navIndex,
+            notificationBadge: alertCount > 0 ? '$alertCount' : null,
+            onSelect: (index) {
+              notifier.setNavIndex(index);
+              if (!isDesktop) {
+                Navigator.pop(context); // Close drawer on mobile
+              }
             },
-            icon: const Icon(Icons.notifications_none_outlined),
-          ),
-          const Padding(
-            padding: EdgeInsets.only(right: 12),
-            child: CircleAvatar(
-              radius: 16,
-              backgroundColor: Color(0xFF16A34A),
-              child: Icon(Icons.person, size: 18, color: Colors.white),
+          );
+
+          if (isDesktop) {
+            return Scaffold(
+              body: Row(
+                children: [
+                  sidebar,
+                  const VerticalDivider(width: 1, color: Colors.black12),
+                  Expanded(
+                    child: IndexedStack(index: state.navIndex, children: pages),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          return Scaffold(
+            appBar: AppBar(
+              title: const Text('Verdi'),
+              actions: [
+                IconButton(onPressed: () {}, icon: const Icon(Icons.search)),
+                Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    IconButton(
+                      onPressed: () {
+                        notifier.setNavIndex(7); // Go to notifications/alerts
+                      },
+                      icon: const Icon(Icons.notifications_none_outlined),
+                    ),
+                    if (alertCount > 0)
+                      Positioned(
+                        right: 6,
+                        top: 8,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF16A34A),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: Colors.white, width: 1.5),
+                          ),
+                          child: Text(
+                            '$alertCount',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                const Padding(
+                  padding: EdgeInsets.only(right: 12),
+                  child: CircleAvatar(
+                    radius: 16,
+                    backgroundColor: Color(0xFF16A34A),
+                    child: Icon(Icons.person, size: 18, color: Colors.white),
+                  ),
+                ),
+              ],
             ),
-          ),
-        ],
-      ),
-      drawer: Drawer(
-        child: sidebar,
-      ),
-      body: IndexedStack(
-        index: state.navIndex,
-        children: pages,
-      ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: state.navIndex < 4 ? state.navIndex : 0,
-        onDestinationSelected: (idx) {
-          notifier.setNavIndex(idx);
+            drawer: Drawer(child: sidebar),
+            body: IndexedStack(index: state.navIndex, children: pages),
+            bottomNavigationBar: state.navIndex <= 3
+                ? NavigationBar(
+                    selectedIndex: state.navIndex,
+                    onDestinationSelected: (idx) {
+                      notifier.setNavIndex(idx);
+                      if (!isDesktop) {
+                        Navigator.of(context).maybePop();
+                      }
+                    },
+                    destinations: const [
+                      NavigationDestination(
+                        icon: Icon(Icons.home_outlined),
+                        label: 'Home',
+                      ),
+                      NavigationDestination(
+                        icon: Icon(Icons.storefront_outlined),
+                        label: 'Marketplace',
+                      ),
+                      NavigationDestination(
+                        icon: Icon(Icons.chat_bubble_outline),
+                        label: 'Chats',
+                      ),
+                      NavigationDestination(
+                        icon: Icon(Icons.insights_outlined),
+                        label: 'Analytics',
+                      ),
+                    ],
+                  )
+                : null,
+          );
         },
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            label: 'Home',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.storefront_outlined),
-            label: 'Marketplace',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.chat_bubble_outline),
-            label: 'Chats',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.insights_outlined),
-            label: 'Analytics',
-          ),
-        ],
       ),
     );
   }
@@ -125,12 +192,68 @@ class AppShell extends ConsumerWidget {
 class Sidebar extends StatelessWidget {
   final int selectedIndex;
   final ValueChanged<int> onSelect;
+  final String? notificationBadge;
 
   const Sidebar({
     super.key,
     required this.selectedIndex,
     required this.onSelect,
+    this.notificationBadge,
   });
+
+  static const _sidebarItems = [
+    _SidebarMenuItem(index: 0, label: 'Home', icon: LucideIcons.home),
+    _SidebarMenuItem(index: 1, label: 'Marketplace', icon: LucideIcons.store),
+    _SidebarMenuItem(
+      index: 2,
+      label: 'Chats',
+      icon: LucideIcons.messageCircle,
+      badge: '3',
+    ),
+    _SidebarMenuItem(index: 3, label: 'Analytics', icon: LucideIcons.barChart3),
+    _SidebarMenuItem(index: 4, label: 'Orders', icon: LucideIcons.shoppingCart),
+    _SidebarMenuItem(index: 5, label: 'Logistics', icon: LucideIcons.truck),
+    _SidebarMenuItem(index: 6, label: 'Payments', icon: LucideIcons.creditCard),
+    _SidebarMenuItem(index: 7, label: 'Notifications', icon: LucideIcons.bell),
+    _SidebarMenuItem(index: 8, label: 'Irrigation', icon: LucideIcons.droplet),
+    _SidebarMenuItem(
+      index: 9,
+      label: 'Farmer Irrigation',
+      icon: LucideIcons.droplets,
+    ),
+    _SidebarMenuItem(
+      index: 10,
+      label: 'Drone Inspection',
+      icon: LucideIcons.airplay,
+    ),
+    _SidebarMenuItem(
+      index: 11,
+      label: 'Farm Operations',
+      icon: LucideIcons.hammer,
+    ),
+    _SidebarMenuItem(
+      index: 12,
+      label: 'Dashboard',
+      icon: LucideIcons.layoutDashboard,
+    ),
+    _SidebarMenuItem(index: 13, label: 'Geospatial', icon: LucideIcons.map),
+    _SidebarMenuItem(index: 14, label: 'Crop Health', icon: LucideIcons.leaf),
+    _SidebarMenuItem(index: 15, label: 'Traceability', icon: LucideIcons.link),
+    _SidebarMenuItem(index: 16, label: 'Finance', icon: LucideIcons.dollarSign),
+    _SidebarMenuItem(index: 17, label: 'Weather', icon: LucideIcons.cloud),
+    _SidebarMenuItem(
+      index: 18,
+      label: 'Government',
+      icon: LucideIcons.building2,
+    ),
+    _SidebarMenuItem(index: 19, label: 'Trade', icon: LucideIcons.briefcase),
+    _SidebarMenuItem(
+      index: 20,
+      label: 'Satellite',
+      icon: LucideIcons.satellite,
+    ),
+    _SidebarMenuItem(index: 21, label: 'Settings', icon: LucideIcons.settings),
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -147,7 +270,11 @@ class Sidebar extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    const Icon(LucideIcons.leaf, color: Color(0xFF16A34A), size: 24),
+                    const Icon(
+                      LucideIcons.leaf,
+                      color: Color(0xFF16A34A),
+                      size: 24,
+                    ),
                     const SizedBox(width: 10),
                     Text(
                       'Verdi',
@@ -175,16 +302,192 @@ class Sidebar extends StatelessWidget {
           Expanded(
             child: ListView(
               padding: EdgeInsets.zero,
+              children: _sidebarItems
+                  .map(
+                    (item) => _buildMenuItem(
+                      context,
+                      index: item.index,
+                      label: item.label,
+                      icon: item.icon,
+                      badge: item.index == 7 ? notificationBadge : item.badge,
+                    ),
+                  )
+                  .toList(),
+            ),
+          ),
+          const Divider(height: 1, color: Colors.black12),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
               children: [
-                _buildMenuItem(context, index: 0, label: 'Home', icon: LucideIcons.home),
-                _buildMenuItem(context, index: 1, label: 'Marketplace', icon: LucideIcons.store),
-                _buildMenuItem(context, index: 2, label: 'Chats', icon: LucideIcons.messageCircle, badge: '3'),
-                _buildMenuItem(context, index: 3, label: 'Analytics', icon: LucideIcons.barChart3),
-                _buildMenuItem(context, index: 4, label: 'Orders', icon: LucideIcons.shoppingCart),
-                _buildMenuItem(context, index: 5, label: 'Transport', icon: LucideIcons.truck),
-                _buildMenuItem(context, index: 6, label: 'Finance', icon: LucideIcons.dollarSign),
-                _buildMenuItem(context, index: 7, label: 'Notifications', icon: LucideIcons.bell),
-                _buildMenuItem(context, index: 8, label: 'Settings', icon: LucideIcons.settings),
+                GestureDetector(
+                  onTap: () {
+                    showDialog(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        title: Row(
+                          children: const [
+                            Icon(Icons.stars, color: Colors.amber, size: 28),
+                            SizedBox(width: 8),
+                            Text('Verdi Pro Benefits'),
+                          ],
+                        ),
+                        content: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: const [
+                            Text(
+                              'Unlock premium features for advanced farming & logistics:',
+                            ),
+                            SizedBox(height: 12),
+                            _ProFeature(
+                              icon: Icons.analytics_outlined,
+                              text: 'Unlimited deep analytics reports',
+                            ),
+                            _ProFeature(
+                              icon: Icons.map_outlined,
+                              text: 'Priority regional buyer map routing',
+                            ),
+                            _ProFeature(
+                              icon: Icons.support_agent,
+                              text: '24/7 Premium agent support',
+                            ),
+                            _ProFeature(
+                              icon: Icons.flash_on,
+                              text:
+                                  'Instantly request matching logistics dispatch',
+                            ),
+                          ],
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text(
+                              'Cancel',
+                              style: TextStyle(color: Colors.grey),
+                            ),
+                          ),
+                          ElevatedButton(
+                            onPressed: () {
+                              Navigator.pop(context);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Verdi Pro activated successfully! 🎉',
+                                  ),
+                                ),
+                              );
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF16A34A),
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                            child: const Text('Activate - \$9.99/mo'),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF16A34A), Color(0xFF7C3AED)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.purple.withOpacity(0.15),
+                          blurRadius: 6,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.stars, color: Colors.amber, size: 22),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: const [
+                              Text(
+                                'Unlock Verdi Pro',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                ),
+                              ),
+                              SizedBox(height: 2),
+                              Text(
+                                'Get unlimited deep insights',
+                                style: TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 10,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(
+                          Icons.keyboard_arrow_right,
+                          color: Colors.white,
+                          size: 18,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 16,
+                      backgroundColor: Colors.grey.shade100,
+                      child: const Icon(
+                        Icons.help_outline,
+                        color: Color(0xFF64748B),
+                        size: 16,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: const [
+                          Text(
+                            'Need help? Contact support',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 11,
+                              color: Color(0xFF0F172A),
+                            ),
+                          ),
+                          SizedBox(height: 2),
+                          Text(
+                            'support@verdi.co • +263 77 123 4567',
+                            style: TextStyle(
+                              color: Color(0xFF64748B),
+                              fontSize: 9,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
@@ -207,9 +510,7 @@ class Sidebar extends StatelessWidget {
       decoration: BoxDecoration(
         color: isSelected ? activeBgColor : Colors.transparent,
         border: isSelected
-            ? const Border(
-                left: BorderSide(color: Color(0xFF16A34A), width: 3),
-              )
+            ? const Border(left: BorderSide(color: Color(0xFF16A34A), width: 3))
             : null,
       ),
       child: ListTile(
@@ -225,7 +526,9 @@ class Sidebar extends StatelessWidget {
           style: GoogleFonts.inter(
             fontSize: 14,
             fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-            color: isSelected ? const Color(0xFF16A34A) : const Color(0xFF0F172A),
+            color: isSelected
+                ? const Color(0xFF16A34A)
+                : const Color(0xFF0F172A),
           ),
         ),
         trailing: badge != null
@@ -245,6 +548,44 @@ class Sidebar extends StatelessWidget {
                 ),
               )
             : null,
+      ),
+    );
+  }
+}
+
+class _SidebarMenuItem {
+  final int index;
+  final String label;
+  final IconData icon;
+  final String? badge;
+
+  const _SidebarMenuItem({
+    required this.index,
+    required this.label,
+    required this.icon,
+    this.badge,
+  });
+}
+
+class _ProFeature extends StatelessWidget {
+  final IconData icon;
+  final String text;
+
+  const _ProFeature({required this.icon, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: const Color(0xFF16A34A)),
+          const SizedBox(width: 10),
+          Text(
+            text,
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+          ),
+        ],
       ),
     );
   }

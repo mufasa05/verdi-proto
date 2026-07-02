@@ -1,17 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../state/platform_data_state.dart';
 
-class PaymentsPage extends StatefulWidget {
+class PaymentsPage extends ConsumerStatefulWidget {
   const PaymentsPage({super.key});
 
   @override
-  State<PaymentsPage> createState() => _PaymentsPageState();
+  ConsumerState<PaymentsPage> createState() => _PaymentsPageState();
 }
 
-class _PaymentsPageState extends State<PaymentsPage> {
-  static const green = Color(0xFF16A34A);
-  static const dark = Color(0xFF0F172A);
-  static const muted = Color(0xFF64748B);
+class _PaymentsPageState extends ConsumerState<PaymentsPage> {
   static const background = Color(0xFFF8FAFC);
 
   final List<String> _filters = const [
@@ -23,64 +22,28 @@ class _PaymentsPageState extends State<PaymentsPage> {
   ];
 
   String _selectedFilter = 'All';
+  String? _selectedPaymentId;
 
-  final List<PaymentItem> _payments = const [
-    PaymentItem(
-      id: '#PAY-1001',
-      party: 'FreshMart Ltd',
-      type: 'Buyer Payment',
-      amount: 'US\$ 96',
-      status: 'Completed',
-      method: 'EcoCash',
-      date: 'Today, 09:20',
-      ref: 'TXN-8821',
-      note: 'Tomatoes order',
-    ),
-    PaymentItem(
-      id: '#PAY-1002',
-      party: 'Green Basket',
-      type: 'Buyer Payment',
-      amount: 'US\$ 258',
-      status: 'Pending',
-      method: 'Bank Transfer',
-      date: 'Today, 10:10',
-      ref: 'TXN-8822',
-      note: 'Maize order',
-    ),
-    PaymentItem(
-      id: '#PAY-1003',
-      party: 'City Grocers',
-      type: 'Payout',
-      amount: 'US\$ 176',
-      status: 'Completed',
-      method: 'Wallet',
-      date: 'Yesterday, 16:45',
-      ref: 'TXN-8819',
-      note: 'Potatoes settlement',
-    ),
-    PaymentItem(
-      id: '#PAY-1004',
-      party: 'Hotel Supply Co',
-      type: 'Buyer Payment',
-      amount: 'US\$ 144',
-      status: 'Failed',
-      method: 'Card',
-      date: 'Today, 11:05',
-      ref: 'TXN-8823',
-      note: 'Mango order',
-    ),
-  ];
-
-  late PaymentItem _selectedPayment = _payments.first;
-
-  List<PaymentItem> get _filteredPayments {
-    if (_selectedFilter == 'All') return _payments;
-    return _payments.where((p) => p.status == _selectedFilter).toList();
+  List<PaymentItem> _filteredPayments(List<PaymentItem> allPayments) {
+    if (_selectedFilter == 'All') return allPayments;
+    return allPayments.where((p) => p.status == _selectedFilter).toList();
   }
 
   @override
   Widget build(BuildContext context) {
-    final payments = _filteredPayments;
+    final allPayments = ref.watch(paymentsListProvider);
+    final payments = _filteredPayments(allPayments);
+
+    if (_selectedPaymentId == null && payments.isNotEmpty) {
+      _selectedPaymentId = payments.first.id;
+    }
+    final selectedPayment = payments.firstWhere(
+      (p) => p.id == _selectedPaymentId,
+      orElse: () => payments.isNotEmpty ? payments.first : const PaymentItem(
+        id: '', party: '', type: '', amount: '', status: '',
+        method: '', date: '', ref: '', note: ''
+      ),
+    );
 
     return Scaffold(
       backgroundColor: background,
@@ -101,8 +64,9 @@ class _PaymentsPageState extends State<PaymentsPage> {
                     onFilterChanged: (v) {
                       setState(() {
                         _selectedFilter = v;
-                        if (_filteredPayments.isNotEmpty) {
-                          _selectedPayment = _filteredPayments.first;
+                        final filtered = _filteredPayments(allPayments);
+                        if (filtered.isNotEmpty) {
+                          _selectedPaymentId = filtered.first.id;
                         }
                       });
                     },
@@ -110,7 +74,14 @@ class _PaymentsPageState extends State<PaymentsPage> {
                   const SizedBox(height: 16),
                   _StatsGrid(isDesktop: isDesktop),
                   const SizedBox(height: 16),
-                  if (isDesktop)
+                  if (payments.isEmpty)
+                    const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(32),
+                        child: Text('No transactions found matching this filter.'),
+                      ),
+                    )
+                  else if (isDesktop)
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -123,11 +94,10 @@ class _PaymentsPageState extends State<PaymentsPage> {
                                 for (int i = 0; i < payments.length; i++) ...[
                                   _PaymentCard(
                                     payment: payments[i],
-                                    selected:
-                                        payments[i].id == _selectedPayment.id,
+                                    selected: payments[i].id == _selectedPaymentId,
                                     onTap: () {
                                       setState(() {
-                                        _selectedPayment = payments[i];
+                                        _selectedPaymentId = payments[i].id;
                                       });
                                     },
                                   ),
@@ -146,7 +116,7 @@ class _PaymentsPageState extends State<PaymentsPage> {
                               _SectionCard(
                                 title: 'Payment Detail',
                                 child: _PaymentDetailPanel(
-                                  payment: _selectedPayment,
+                                  payment: selectedPayment,
                                 ),
                               ),
                               const SizedBox(height: 16),
@@ -164,7 +134,7 @@ class _PaymentsPageState extends State<PaymentsPage> {
                       children: [
                         _SectionCard(
                           title: 'Payment Detail',
-                          child: _PaymentDetailPanel(payment: _selectedPayment),
+                          child: _PaymentDetailPanel(payment: selectedPayment),
                         ),
                         const SizedBox(height: 16),
                         _SectionCard(
@@ -174,11 +144,10 @@ class _PaymentsPageState extends State<PaymentsPage> {
                               for (int i = 0; i < payments.length; i++) ...[
                                 _PaymentCard(
                                   payment: payments[i],
-                                  selected:
-                                      payments[i].id == _selectedPayment.id,
+                                  selected: payments[i].id == _selectedPaymentId,
                                   onTap: () {
                                     setState(() {
-                                      _selectedPayment = payments[i];
+                                      _selectedPaymentId = payments[i].id;
                                     });
                                   },
                                 ),
@@ -736,29 +705,6 @@ class _SectionCard extends StatelessWidget {
   }
 }
 
-class PaymentItem {
-  final String id;
-  final String party;
-  final String type;
-  final String amount;
-  final String status;
-  final String method;
-  final String date;
-  final String ref;
-  final String note;
-
-  const PaymentItem({
-    required this.id,
-    required this.party,
-    required this.type,
-    required this.amount,
-    required this.status,
-    required this.method,
-    required this.date,
-    required this.ref,
-    required this.note,
-  });
-}
 
 class _StatData {
   final String label;

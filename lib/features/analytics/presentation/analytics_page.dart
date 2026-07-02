@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart' hide Path;
 import 'package:syncfusion_flutter_charts/charts.dart';
 import '../data/analytics_export_service.dart';
 
-class AnalyticsPage extends StatefulWidget {
+class AnalyticsPage extends ConsumerStatefulWidget {
   const AnalyticsPage({super.key});
 
   static const green = Color(0xFF16A34A);
@@ -15,10 +18,10 @@ class AnalyticsPage extends StatefulWidget {
   static const background = Color(0xFFF8FAFC);
 
   @override
-  State<AnalyticsPage> createState() => _AnalyticsPageState();
+  ConsumerState<AnalyticsPage> createState() => _AnalyticsPageState();
 }
 
-class _AnalyticsPageState extends State<AnalyticsPage> {
+class _AnalyticsPageState extends ConsumerState<AnalyticsPage> {
   String _selectedTimeframe = '7 Days';
   String _selectedRegion = 'All Regions';
 
@@ -864,10 +867,276 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                         );
                 },
               ),
+              const SizedBox(height: 24),
+              // Customer Reach Info Section
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.black12),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Customer Reach & Traffic',
+                      style: GoogleFonts.inter(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        color: AnalyticsPage.dark,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Profile views, visitor engagement, and transaction ratios.',
+                      style: GoogleFonts.inter(
+                        fontSize: 12.5,
+                        color: AnalyticsPage.muted,
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final isWide = constraints.maxWidth > 600;
+                        return GridView.count(
+                          crossAxisCount: isWide ? 4 : 2,
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 12,
+                          childAspectRatio: isWide ? 1.4 : 1.3,
+                          children: [
+                            _buildReachCard('Profile Views', '1,420', '+12.4%', Icons.visibility_outlined, Colors.blue),
+                            _buildReachCard('Unique Visitors', '950', '+8.2%', Icons.people_outline, Colors.teal),
+                            _buildReachCard('Inquiries Received', '185', '+15.3%', Icons.chat_bubble_outline, Colors.purple),
+                            _buildReachCard('Conversion Rate', '13.0%', '+2.5%', Icons.swap_horiz_outlined, Colors.orange),
+                          ],
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Buyer Locations Section
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.black12),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Active Buyer Locations Map',
+                      style: GoogleFonts.inter(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        color: AnalyticsPage.dark,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Geographic concentration of active buyers in the region (Non-interactive)',
+                      style: GoogleFonts.inter(
+                        fontSize: 12.5,
+                        color: AnalyticsPage.muted,
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    IgnorePointer(
+                      child: Container(
+                        height: 280,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: Colors.black12),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(16),
+                          child: FlutterMap(
+                            options: const MapOptions(
+                              initialCenter: LatLng(-19.5, 30.5),
+                              initialZoom: 6.8,
+                            ),
+                            children: [
+                              TileLayer(
+                                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                                userAgentPackageName: 'com.verdi.app',
+                              ),
+                              MarkerLayer(
+                                markers: const [
+                                  Marker(
+                                    point: LatLng(-17.8292, 31.0522), // Harare
+                                    width: 40,
+                                    height: 40,
+                                    child: Icon(Icons.location_pin, color: Colors.red, size: 28),
+                                  ),
+                                  Marker(
+                                    point: LatLng(-20.0637, 30.8276), // Masvingo
+                                    width: 40,
+                                    height: 40,
+                                    child: Icon(Icons.location_pin, color: Colors.blue, size: 28),
+                                  ),
+                                  Marker(
+                                    point: LatLng(-21.05, 31.67), // Chiredzi
+                                    width: 40,
+                                    height: 40,
+                                    child: Icon(Icons.location_pin, color: Colors.green, size: 28),
+                                  ),
+                                  Marker(
+                                    point: LatLng(-18.97, 32.67), // Mutare
+                                    width: 40,
+                                    height: 40,
+                                    child: Icon(Icons.location_pin, color: Colors.orange, size: 28),
+                                  ),
+                                  Marker(
+                                    point: LatLng(-20.17, 28.56), // Bulawayo
+                                    width: 40,
+                                    height: 40,
+                                    child: Icon(Icons.location_pin, color: Colors.purple, size: 28),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // AI Profile Insights Section
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      AnalyticsPage.purple.withOpacity(0.04),
+                      AnalyticsPage.purple.withOpacity(0.08),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: AnalyticsPage.purple.withOpacity(0.18)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: const [
+                        Icon(Icons.auto_awesome, color: AnalyticsPage.purple),
+                        SizedBox(width: 8),
+                        Text(
+                          'AI Profile Activity Intelligence',
+                          style: TextStyle(
+                            color: AnalyticsPage.purple,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'Analysis of your reach metrics and buyer inquiry logs over the past week shows a strong growth trend in profile views (+12.4%) primarily centered on soybean and tomato listings.',
+                      style: TextStyle(
+                        color: AnalyticsPage.dark,
+                        fontSize: 13.5,
+                        height: 1.45,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    const Text(
+                      '• Inquiry Conversion Rate is running at 13.0%, which is 2.5% higher than the platform average for Southern regional farms.\n'
+                      '• Peak traffic periods for your profile are observed between 8:00 AM and 10:00 AM on Tuesdays and Thursdays.\n'
+                      '• Response time to inquiries remains below 15 minutes, which maintains your profile badge as a "Fast Responder".',
+                      style: TextStyle(
+                        color: AnalyticsPage.dark,
+                        fontSize: 13,
+                        height: 1.5,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'Recommendation: Schedule listing updates to go live at 7:30 AM on weekdays to align with peak morning buyer searches in the Harare and Chiredzi logistics corridors.',
+                      style: TextStyle(
+                        color: AnalyticsPage.muted,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12.5,
+                        height: 1.45,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
               const SizedBox(height: 60),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildReachCard(String label, String value, String growth, IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withOpacity(0.12)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Icon(icon, color: color, size: 20),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.green.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  growth,
+                  style: const TextStyle(color: Colors.green, fontSize: 10, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                value,
+                style: GoogleFonts.inter(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: AnalyticsPage.dark,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                label,
+                style: GoogleFonts.inter(
+                  fontSize: 11,
+                  color: AnalyticsPage.muted,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

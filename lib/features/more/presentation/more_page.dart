@@ -5,14 +5,12 @@ import '../../shell/presentation/verdi_destinations.dart';
 class MorePage extends StatelessWidget {
   final void Function(int index) onSelectDestination;
 
-  const MorePage({
-    super.key,
-    required this.onSelectDestination,
-  });
+  const MorePage({super.key, required this.onSelectDestination});
 
   @override
   Widget build(BuildContext context) {
     final remainingDestinations = verdiDestinations.sublist(5);
+    final moreDestinationIndexes = [17, 2, 3, 22];
 
     return VerdiPageScaffold(
       title: 'More',
@@ -22,7 +20,7 @@ class MorePage extends StatelessWidget {
         separatorBuilder: (context, index) => const SizedBox(height: 12),
         itemBuilder: (context, index) {
           final destination = remainingDestinations[index];
-          final actualIndex = index + 5;
+          final actualIndex = moreDestinationIndexes[index];
 
           return Card(
             child: ListTile(

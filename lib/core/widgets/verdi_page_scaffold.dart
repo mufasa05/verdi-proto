@@ -31,7 +31,7 @@ class VerdiPageScaffold extends StatelessWidget {
                   subtitle: subtitle,
                 ),
               ),
-              if (actions != null) ...actions!,
+              ...?actions,
             ],
           ),
           const SizedBox(height: 24),

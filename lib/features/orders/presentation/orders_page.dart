@@ -1,19 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../state/platform_data_state.dart';
 
-class OrdersPage extends StatefulWidget {
+class OrdersPage extends ConsumerStatefulWidget {
   const OrdersPage({super.key});
 
   @override
-  State<OrdersPage> createState() => _OrdersPageState();
+  ConsumerState<OrdersPage> createState() => _OrdersPageState();
 }
 
-class _OrdersPageState extends State<OrdersPage> {
-  static const green = Color(0xFF16A34A);
-  static const dark = Color(0xFF0F172A);
-  static const muted = Color(0xFF64748B);
-  static const background = Color(0xFFF8FAFC);
-
+class _OrdersPageState extends ConsumerState<OrdersPage> {
   final List<String> _filters = const [
     'All',
     'Pending',
@@ -24,75 +21,32 @@ class _OrdersPageState extends State<OrdersPage> {
   ];
 
   String _selectedFilter = 'All';
+  String? _selectedOrderId;
 
-  final List<OrderItem> _orders = const [
-    OrderItem(
-      id: '#ORD-1001',
-      buyer: 'FreshMart Ltd',
-      product: 'Tomatoes',
-      quantity: '120 kg',
-      destination: 'Harare',
-      status: 'In Transit',
-      payment: 'Paid',
-      total: 'US\$ 96',
-      date: 'Today, 09:20',
-      eta: '1h 20m',
-      priority: 'High',
-    ),
-    OrderItem(
-      id: '#ORD-1002',
-      buyer: 'Green Basket',
-      product: 'Maize',
-      quantity: '430 kg',
-      destination: 'Masvingo',
-      status: 'Confirmed',
-      payment: 'Pending',
-      total: 'US\$ 258',
-      date: 'Today, 10:10',
-      eta: '3h 15m',
-      priority: 'Medium',
-    ),
-    OrderItem(
-      id: '#ORD-1003',
-      buyer: 'City Grocers',
-      product: 'Potatoes',
-      quantity: '220 kg',
-      destination: 'Bulawayo',
-      status: 'Delivered',
-      payment: 'Paid',
-      total: 'US\$ 176',
-      date: 'Yesterday, 16:45',
-      eta: 'Completed',
-      priority: 'Low',
-    ),
-    OrderItem(
-      id: '#ORD-1004',
-      buyer: 'Hotel Supply Co',
-      product: 'Mango',
-      quantity: '60 crates',
-      destination: 'Mutare',
-      status: 'Pending',
-      payment: 'Unpaid',
-      total: 'US\$ 144',
-      date: 'Today, 11:05',
-      eta: 'Awaiting',
-      priority: 'High',
-    ),
-  ];
-
-  late OrderItem _selectedOrder = _orders.first;
-
-  List<OrderItem> get _filteredOrders {
-    if (_selectedFilter == 'All') return _orders;
-    return _orders.where((o) => o.status == _selectedFilter).toList();
+  List<OrderItem> _filteredOrders(List<OrderItem> allOrders) {
+    if (_selectedFilter == 'All') return allOrders;
+    return allOrders.where((o) => o.status == _selectedFilter).toList();
   }
+
 
   @override
   Widget build(BuildContext context) {
-    final orders = _filteredOrders;
+    final allOrders = ref.watch(ordersListProvider);
+    final orders = _filteredOrders(allOrders);
+
+    if (_selectedOrderId == null && orders.isNotEmpty) {
+      _selectedOrderId = orders.first.id;
+    }
+    final selectedOrder = orders.firstWhere(
+      (o) => o.id == _selectedOrderId,
+      orElse: () => orders.isNotEmpty ? orders.first : const OrderItem(
+        id: '', buyer: '', product: '', quantity: '', destination: '',
+        status: '', payment: '', total: '', date: '', eta: '', priority: ''
+      ),
+    );
 
     return Scaffold(
-      backgroundColor: background,
+      backgroundColor: Colors.white,
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
@@ -110,8 +64,9 @@ class _OrdersPageState extends State<OrdersPage> {
                     onFilterChanged: (v) {
                       setState(() {
                         _selectedFilter = v;
-                        if (_filteredOrders.isNotEmpty) {
-                          _selectedOrder = _filteredOrders.first;
+                        final filtered = _filteredOrders(allOrders);
+                        if (filtered.isNotEmpty) {
+                          _selectedOrderId = filtered.first.id;
                         }
                       });
                     },
@@ -119,7 +74,14 @@ class _OrdersPageState extends State<OrdersPage> {
                   const SizedBox(height: 16),
                   _StatsGrid(isDesktop: isDesktop),
                   const SizedBox(height: 16),
-                  if (isDesktop)
+                  if (orders.isEmpty)
+                    const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(32.0),
+                        child: Text('No orders found matching this filter.'),
+                      ),
+                    )
+                  else if (isDesktop)
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -132,9 +94,9 @@ class _OrdersPageState extends State<OrdersPage> {
                                 for (int i = 0; i < orders.length; i++) ...[
                                   _OrderCard(
                                     order: orders[i],
-                                    selected: orders[i].id == _selectedOrder.id,
+                                    selected: orders[i].id == _selectedOrderId,
                                     onTap: () {
-                                      setState(() => _selectedOrder = orders[i]);
+                                      setState(() => _selectedOrderId = orders[i].id);
                                     },
                                   ),
                                   if (i != orders.length - 1)
@@ -151,12 +113,12 @@ class _OrdersPageState extends State<OrdersPage> {
                             children: [
                               _SectionCard(
                                 title: 'Order Detail',
-                                child: _OrderDetailPanel(order: _selectedOrder),
+                                child: _OrderDetailPanel(order: selectedOrder),
                               ),
                               const SizedBox(height: 16),
                               _SectionCard(
                                 title: 'Fulfillment Timeline',
-                                child: _Timeline(order: _selectedOrder),
+                                child: _Timeline(order: selectedOrder),
                               ),
                             ],
                           ),
@@ -168,7 +130,7 @@ class _OrdersPageState extends State<OrdersPage> {
                       children: [
                         _SectionCard(
                           title: 'Order Detail',
-                          child: _OrderDetailPanel(order: _selectedOrder),
+                          child: _OrderDetailPanel(order: selectedOrder),
                         ),
                         const SizedBox(height: 16),
                         _SectionCard(
@@ -178,9 +140,9 @@ class _OrdersPageState extends State<OrdersPage> {
                               for (int i = 0; i < orders.length; i++) ...[
                                 _OrderCard(
                                   order: orders[i],
-                                  selected: orders[i].id == _selectedOrder.id,
+                                  selected: orders[i].id == _selectedOrderId,
                                   onTap: () {
-                                    setState(() => _selectedOrder = orders[i]);
+                                    setState(() => _selectedOrderId = orders[i].id);
                                   },
                                 ),
                                 if (i != orders.length - 1)
@@ -192,7 +154,7 @@ class _OrdersPageState extends State<OrdersPage> {
                         const SizedBox(height: 16),
                         _SectionCard(
                           title: 'Fulfillment Timeline',
-                          child: _Timeline(order: _selectedOrder),
+                          child: _Timeline(order: selectedOrder),
                         ),
                       ],
                     ),
@@ -734,33 +696,6 @@ class _SectionCard extends StatelessWidget {
   }
 }
 
-class OrderItem {
-  final String id;
-  final String buyer;
-  final String product;
-  final String quantity;
-  final String destination;
-  final String status;
-  final String payment;
-  final String total;
-  final String date;
-  final String eta;
-  final String priority;
-
-  const OrderItem({
-    required this.id,
-    required this.buyer,
-    required this.product,
-    required this.quantity,
-    required this.destination,
-    required this.status,
-    required this.payment,
-    required this.total,
-    required this.date,
-    required this.eta,
-    required this.priority,
-  });
-}
 
 class _StatData {
   final String label;

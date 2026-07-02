@@ -1,18 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:latlong2/latlong.dart';
 
 import 'package:verdi/features/logistics/data/logistics_data.dart';
 import 'package:verdi/features/logistics/presentation/widgets/tracking_map.dart';
+import '../../../state/platform_data_state.dart';
 
-class LogisticsPage extends StatefulWidget {
+class LogisticsPage extends ConsumerStatefulWidget {
   const LogisticsPage({super.key});
 
   @override
-  State<LogisticsPage> createState() => _LogisticsPageState();
+  ConsumerState<LogisticsPage> createState() => _LogisticsPageState();
 }
 
-class _LogisticsPageState extends State<LogisticsPage> {
+class _LogisticsPageState extends ConsumerState<LogisticsPage> {
   static const green = Color(0xFF16A34A);
   static const dark = Color(0xFF0F172A);
   static const muted = Color(0xFF64748B);
@@ -27,8 +29,7 @@ class _LogisticsPageState extends State<LogisticsPage> {
   ];
 
   String _selectedFilter = 'All';
-  late List<DeliveryItem> _deliveriesList;
-  String _selectedDeliveryId = '#DLV-101';
+  String? _selectedDeliveryId;
 
   static const Map<String, LatLng> _locationCoordinates = {
     'Chiredzi Farm': LatLng(-21.05, 31.67),
@@ -41,17 +42,9 @@ class _LogisticsPageState extends State<LogisticsPage> {
     'Gwanda Yard': LatLng(-20.94, 29.02),
   };
 
-  @override
-  void initState() {
-    super.initState();
-    _deliveriesList = List.from(LogisticsMockData.deliveries);
-  }
-
-  List<DeliveryItem> get _deliveries {
-    if (_selectedFilter == 'All') return _deliveriesList;
-    return _deliveriesList
-        .where((d) => d.status == _selectedFilter)
-        .toList();
+  List<DeliveryItem> _getFilteredDeliveries(List<DeliveryItem> allDeliveries) {
+    if (_selectedFilter == 'All') return allDeliveries;
+    return allDeliveries.where((d) => d.status == _selectedFilter).toList();
   }
 
   void _showUpdateStatusDialog(DeliveryItem item) {
@@ -85,32 +78,7 @@ class _LogisticsPageState extends State<LogisticsPage> {
   }
 
   void _updateDeliveryStatus(String id, String newStatus) {
-    setState(() {
-      _deliveriesList = _deliveriesList.map((d) {
-        if (d.id == id) {
-          double progress = 0.12;
-          if (newStatus == 'Picked up') progress = 0.45;
-          if (newStatus == 'On the way') progress = 0.72;
-          if (newStatus == 'Delivered') progress = 1.0;
-
-          return DeliveryItem(
-            id: d.id,
-            customer: d.customer,
-            product: d.product,
-            quantity: d.quantity,
-            from: d.from,
-            to: d.to,
-            status: newStatus,
-            driver: d.driver,
-            vehicle: d.vehicle,
-            eta: newStatus == 'Delivered' ? 'Delivered' : d.eta,
-            progress: progress,
-          );
-        }
-        return d;
-      }).toList();
-    });
-
+    ref.read(deliveriesListProvider.notifier).updateDeliveryStatus(id, newStatus);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Delivery $id updated to $newStatus')),
     );
@@ -118,11 +86,16 @@ class _LogisticsPageState extends State<LogisticsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final deliveries = _deliveries;
+    final allDeliveries = ref.watch(deliveriesListProvider);
+    final deliveries = _getFilteredDeliveries(allDeliveries);
 
-    final selectedDelivery = _deliveriesList.firstWhere(
+    if (_selectedDeliveryId == null && allDeliveries.isNotEmpty) {
+      _selectedDeliveryId = allDeliveries.first.id;
+    }
+
+    final selectedDelivery = allDeliveries.firstWhere(
       (d) => d.id == _selectedDeliveryId,
-      orElse: () => _deliveriesList.first,
+      orElse: () => allDeliveries.first,
     );
 
     final startPoint = _locationCoordinates[selectedDelivery.from] ?? const LatLng(-17.8292, 31.0522);

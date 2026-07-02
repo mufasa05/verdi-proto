@@ -14,64 +14,62 @@ class WeatherPage extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF7F8FA),
-      appBar: AppBar(
-        title: const Text('Weather'),
-      ),
+      appBar: AppBar(title: const Text('Weather')),
       body: SafeArea(
         child: state.isLoading
             ? const Center(child: CircularProgressIndicator())
             : state.weather == null
-                ? Center(
-                    child: Text(
-                      state.error ?? 'No weather data available',
-                      style: GoogleFonts.poppins(),
-                    ),
-                  )
-                : SingleChildScrollView(
-                    padding: const EdgeInsets.all(20),
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        final isWide = constraints.maxWidth >= 1100;
-                        final weather = state.weather!;
+            ? Center(
+                child: Text(
+                  state.error ?? 'No weather data available',
+                  style: GoogleFonts.poppins(),
+                ),
+              )
+            : SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final isWide = constraints.maxWidth >= 1100;
+                    final weather = state.weather!;
 
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _WeatherHeroCard(weather: weather),
-                            const SizedBox(height: 16),
-                            _WeatherAlertCard(alerts: weather.alerts),
-                            const SizedBox(height: 16),
-                            _SectionTitle(
-                              title: 'Current conditions',
-                              actionText: 'Refresh',
-                              onTap: state.loadWeather,
-                            ),
-                            const SizedBox(height: 12),
-                            _CurrentConditionsGrid(weather: weather),
-                            const SizedBox(height: 16),
-                            _SectionTitle(
-                              title: 'Hourly forecast',
-                              actionText: 'See all',
-                              onTap: () {},
-                            ),
-                            const SizedBox(height: 12),
-                            _HourlyForecastList(hours: weather.hourly),
-                            const SizedBox(height: 16),
-                            _SectionTitle(
-                              title: '7-day outlook',
-                              actionText: 'Open details',
-                              onTap: () {},
-                            ),
-                            const SizedBox(height: 12),
-                            if (isWide)
-                              _WeeklyForecastWide(days: weather.daily)
-                            else
-                              _WeeklyForecastList(days: weather.daily),
-                          ],
-                        );
-                      },
-                    ),
-                  ),
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _WeatherHeroCard(weather: weather),
+                        const SizedBox(height: 16),
+                        _WeatherAlertCard(alerts: weather.alerts),
+                        const SizedBox(height: 16),
+                        _SectionTitle(
+                          title: 'Current conditions',
+                          actionText: 'Refresh',
+                          onTap: state.loadWeather,
+                        ),
+                        const SizedBox(height: 12),
+                        _CurrentConditionsGrid(weather: weather),
+                        const SizedBox(height: 16),
+                        _SectionTitle(
+                          title: 'Hourly forecast',
+                          actionText: 'See all',
+                          onTap: () {},
+                        ),
+                        const SizedBox(height: 12),
+                        _HourlyForecastList(hours: weather.hourly),
+                        const SizedBox(height: 16),
+                        _SectionTitle(
+                          title: '7-day outlook',
+                          actionText: 'Open details',
+                          onTap: () {},
+                        ),
+                        const SizedBox(height: 12),
+                        if (isWide)
+                          _WeeklyForecastWide(days: weather.daily)
+                        else
+                          _WeeklyForecastList(days: weather.daily),
+                      ],
+                    );
+                  },
+                ),
+              ),
       ),
     );
   }
@@ -177,10 +175,7 @@ class _WeatherAlertCard extends StatelessWidget {
                   style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
                 ),
               ),
-              TextButton(
-                onPressed: () {},
-                child: const Text('View alerts'),
-              ),
+              TextButton(onPressed: () {}, child: const Text('View alerts')),
             ],
           ),
         ),
@@ -226,12 +221,36 @@ class _CurrentConditionsGrid extends StatelessWidget {
       spacing: 14,
       runSpacing: 14,
       children: [
-        _ConditionCard(title: 'Temperature', value: '${weather.temperature}°C', icon: Icons.thermostat_outlined),
-        _ConditionCard(title: 'Humidity', value: '${weather.humidity}%', icon: Icons.water_drop_outlined),
-        _ConditionCard(title: 'Wind', value: '${weather.windSpeed} km/h', icon: Icons.air_outlined),
-        _ConditionCard(title: 'Pressure', value: '${weather.pressure} hPa', icon: Icons.speed_outlined),
-        _ConditionCard(title: 'Rain chance', value: '${weather.rainChance}%', icon: Icons.umbrella_outlined),
-        _ConditionCard(title: 'Visibility', value: '${weather.visibility} km', icon: Icons.visibility_outlined),
+        _ConditionCard(
+          title: 'Temperature',
+          value: '${weather.temperature}°C',
+          icon: Icons.thermostat_outlined,
+        ),
+        _ConditionCard(
+          title: 'Humidity',
+          value: '${weather.humidity}%',
+          icon: Icons.water_drop_outlined,
+        ),
+        _ConditionCard(
+          title: 'Wind',
+          value: '${weather.windSpeed} km/h',
+          icon: Icons.air_outlined,
+        ),
+        _ConditionCard(
+          title: 'Pressure',
+          value: '${weather.pressure} hPa',
+          icon: Icons.speed_outlined,
+        ),
+        _ConditionCard(
+          title: 'Rain chance',
+          value: '${weather.rainChance}%',
+          icon: Icons.umbrella_outlined,
+        ),
+        _ConditionCard(
+          title: 'Visibility',
+          value: '${weather.visibility} km',
+          icon: Icons.visibility_outlined,
+        ),
       ],
     );
   }
@@ -263,9 +282,21 @@ class _ConditionCard extends StatelessWidget {
         children: [
           Icon(icon, color: Colors.blueGrey.shade600),
           const SizedBox(height: 12),
-          Text(title, style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey.shade600)),
+          Text(
+            title,
+            style: GoogleFonts.poppins(
+              fontSize: 12,
+              color: Colors.grey.shade600,
+            ),
+          ),
           const SizedBox(height: 4),
-          Text(value, style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w700)),
+          Text(
+            value,
+            style: GoogleFonts.poppins(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
         ],
       ),
     );
@@ -333,7 +364,13 @@ class _HourTile extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(time, style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey.shade600)),
+          Text(
+            time,
+            style: GoogleFonts.poppins(
+              fontSize: 12,
+              color: Colors.grey.shade600,
+            ),
+          ),
           const SizedBox(height: 10),
           Icon(icon, color: color),
           const SizedBox(height: 10),
@@ -452,7 +489,13 @@ class _DailyForecastTile extends StatelessWidget {
       ),
       child: Row(
         children: [
-          SizedBox(width: 64, child: Text(day, style: GoogleFonts.poppins(fontWeight: FontWeight.w600))),
+          SizedBox(
+            width: 64,
+            child: Text(
+              day,
+              style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+            ),
+          ),
           Icon(icon, color: color),
           const SizedBox(width: 14),
           Expanded(
@@ -461,7 +504,10 @@ class _DailyForecastTile extends StatelessWidget {
               style: GoogleFonts.poppins(color: Colors.grey.shade700),
             ),
           ),
-          Text('$min / $max', style: GoogleFonts.poppins(fontWeight: FontWeight.w700)),
+          Text(
+            '$min / $max',
+            style: GoogleFonts.poppins(fontWeight: FontWeight.w700),
+          ),
         ],
       ),
     );

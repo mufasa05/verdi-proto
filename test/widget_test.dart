@@ -2,8 +2,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:verdi/app/verdi_app.dart';
 
 void main() {
-  testWidgets('App builds', (WidgetTester tester) async {
+  testWidgets('App loads', (WidgetTester tester) async {
     await tester.pumpWidget(const VerdiApp());
-    expect(find.text('Verdi'), findsOneWidget);
+    await tester.pumpAndSettle();
+    expect(find.text('Farm Operations'), findsOneWidget);
   });
 }

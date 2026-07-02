@@ -1,12 +1,13 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 
+import '../../crop_health/presentation/crop_health_page.dart';
 import '../../../data/mock_app_data.dart';
 import '../../../state/app_state.dart';
-import 'widgets/dashboard_navigation_rail.dart';
-import 'widgets/dashboard_side_panel.dart';
 
 class HomePage extends ConsumerWidget {
   const HomePage({super.key});
@@ -39,73 +40,57 @@ class HomePage extends ConsumerWidget {
 
     return Scaffold(
       body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final wide = constraints.maxWidth > 1180;
-
-            final mainColumn = SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _Header(
-                    greeting: _greeting(),
-                    farmerName: MockAppData.farmerName,
-                    location: MockAppData.location,
-                    roleLabel: roleLabel,
-                  ),
-                  const SizedBox(height: 12),
-                  _RoleSwitcher(currentRole: appState.role),
-                  const SizedBox(height: 12),
-                  _MiniStatsRow(),
-                  const SizedBox(height: 12),
-                  _InsightStrip(),
-                  const SizedBox(height: 12),
-                  
-                  const _SectionTitle(
-                    title: 'Market momentum',
-                    subtitle: 'Short-term demand and price movement',
-                  ),
-                  const SizedBox(height: 10),
-                  _MarketMomentumCard(),
-                  const SizedBox(height: 12),
-                  const _SectionTitle(
-                    title: 'Top listings',
-                    subtitle: 'Recent activity from your farm',
-                  ),
-                  const SizedBox(height: 10),
-                  _ListingsCard(),
-                  const SizedBox(height: 12),
-                  const _SectionTitle(
-                    title: 'Weather and crop health',
-                    subtitle: 'Quick conditions and field status',
-                  ),
-                  const SizedBox(height: 10),
-                  _WeatherCropSection(),
-                  const SizedBox(height: 12),
-                  _QuickActions(),
-                  const SizedBox(height: 80),
-                ],
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _Header(
+                greeting: _greeting(),
+                farmerName: MockAppData.farmerName,
+                location: MockAppData.location,
+                roleLabel: roleLabel,
               ),
-            );
+              const SizedBox(height: 12),
+              _RoleSwitcher(currentRole: appState.role),
+              const SizedBox(height: 12),
+              _MiniStatsRow(),
+              const SizedBox(height: 12),
+              _InsightStrip(),
+              const SizedBox(height: 12),
 
-            if (!wide) return mainColumn;
-
-            return Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                DashboardNavigationRail(currentRole: appState.role),
-                Expanded(flex: 3, child: mainColumn),
-                const SizedBox(
-                  width: 340,
-                  child: Padding(
-                    padding: EdgeInsets.fromLTRB(0, 16, 16, 16),
-                    child: DashboardSidePanel(),
-                  ),
-                ),
-              ],
-            );
-          },
+              const _SectionTitle(
+                title: 'Market momentum',
+                subtitle: 'Short-term demand and price movement',
+              ),
+              const SizedBox(height: 10),
+              _MarketMomentumCard(),
+              const SizedBox(height: 12),
+              const _SectionTitle(
+                title: 'Live Market Activities',
+                subtitle: 'Real-time updates across the platform',
+              ),
+              const SizedBox(height: 10),
+              const _MarketActivitiesCard(),
+              const SizedBox(height: 12),
+              const _SectionTitle(
+                title: 'Top listings',
+                subtitle: 'Recent activity from your farm',
+              ),
+              const SizedBox(height: 10),
+              _ListingsCard(),
+              const SizedBox(height: 12),
+              const _SectionTitle(
+                title: 'Weather and crop health',
+                subtitle: 'Quick conditions and field status',
+              ),
+              const SizedBox(height: 10),
+              _WeatherCropSection(),
+              const SizedBox(height: 12),
+              _QuickActions(),
+              const SizedBox(height: 80),
+            ],
+          ),
         ),
       ),
     );
@@ -142,7 +127,11 @@ class _Header extends StatelessWidget {
           const CircleAvatar(
             radius: 24,
             backgroundColor: Colors.white,
-            child: Icon(Icons.agriculture_outlined, color: HomePage.green, size: 26),
+            child: Icon(
+              Icons.agriculture_outlined,
+              color: HomePage.green,
+              size: 26,
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -165,6 +154,8 @@ class _Header extends StatelessWidget {
                     fontWeight: FontWeight.w500,
                   ),
                 ),
+                const SizedBox(height: 6),
+                const _LiveClockWidget(),
               ],
             ),
           ),
@@ -176,7 +167,11 @@ class _Header extends StatelessWidget {
             ),
             child: Row(
               children: [
-                const Icon(Icons.wb_sunny_outlined, color: Colors.white, size: 18),
+                const Icon(
+                  Icons.wb_sunny_outlined,
+                  color: Colors.white,
+                  size: 18,
+                ),
                 const SizedBox(width: 6),
                 Text(
                   'Live',
@@ -225,7 +220,9 @@ class _RoleSwitcher extends ConsumerWidget {
             fontWeight: FontWeight.w700,
           ),
           side: BorderSide(
-            color: selected ? HomePage.green : HomePage.muted.withValues(alpha: 0.18),
+            color: selected
+                ? HomePage.green
+                : HomePage.muted.withValues(alpha: 0.18),
           ),
         );
       }).toList(),
@@ -248,8 +245,8 @@ class _MiniStatsRow extends StatelessWidget {
         final columns = constraints.maxWidth > 1000
             ? 4
             : constraints.maxWidth > 650
-                ? 2
-                : 1;
+            ? 2
+            : 1;
 
         return GridView.builder(
           shrinkWrap: true,
@@ -315,7 +312,10 @@ class _StatCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(title, style: GoogleFonts.inter(fontSize: 11, color: HomePage.muted)),
+                Text(
+                  title,
+                  style: GoogleFonts.inter(fontSize: 11, color: HomePage.muted),
+                ),
                 const SizedBox(height: 2),
                 Text(
                   value,
@@ -342,28 +342,32 @@ class _InsightStrip extends StatelessWidget {
         title: '3 buyers in Chiredzi need tomatoes',
         subtitle: 'Demand is high near your farm this morning.',
         action: 'View buyers',
-        imageUrl: 'https://images.unsplash.com/photo-1546470427-227c2e6b1b4c?auto=format&fit=crop&w=1200&q=80',
+        imageUrl:
+            'https://images.unsplash.com/photo-1546470427-227c2e6b1b4c?auto=format&fit=crop&w=1200&q=80',
         color: HomePage.green,
       ),
       _InsightCardData(
         title: 'Tomato price trend is up 12%',
         subtitle: 'You may want to list more inventory today.',
         action: 'See trend',
-        imageUrl: 'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?auto=format&fit=crop&w=1200&q=80',
+        imageUrl:
+            'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?auto=format&fit=crop&w=1200&q=80',
         color: HomePage.orange,
       ),
       _InsightCardData(
         title: 'Rain expected tomorrow',
         subtitle: 'Delivery timing may need adjustment.',
         action: 'View forecast',
-        imageUrl: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1200&q=80',
+        imageUrl:
+            'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1200&q=80',
         color: HomePage.blue,
       ),
       _InsightCardData(
         title: 'Crop stress detected in East field',
         subtitle: 'Monitor moisture and leaf health soon.',
         action: 'Check field',
-        imageUrl: 'https://images.unsplash.com/photo-1464226184884-fa280b87c399?auto=format&fit=crop&w=1200&q=80',
+        imageUrl:
+            'https://images.unsplash.com/photo-1464226184884-fa280b87c399?auto=format&fit=crop&w=1200&q=80',
         color: HomePage.purple,
       ),
     ];
@@ -430,7 +434,11 @@ class _InsightCard extends StatelessWidget {
               ),
               child: const Text(
                 'Farmer insight',
-                style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w700),
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
             const SizedBox(height: 8),
@@ -447,7 +455,10 @@ class _InsightCard extends StatelessWidget {
               data.subtitle,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: GoogleFonts.inter(color: Colors.white.withValues(alpha: 0.92), fontSize: 11),
+              style: GoogleFonts.inter(
+                color: Colors.white.withValues(alpha: 0.92),
+                fontSize: 11,
+              ),
             ),
             const SizedBox(height: 8),
             Text(
@@ -466,67 +477,176 @@ class _InsightCard extends StatelessWidget {
 }
 
 class _MarketMomentumCard extends StatelessWidget {
+  const _MarketMomentumCard();
+
+  static const _spots = [
+    FlSpot(0, 124),
+    FlSpot(1, 128),
+    FlSpot(2, 133),
+    FlSpot(3, 138),
+    FlSpot(4, 143),
+    FlSpot(5, 149),
+    FlSpot(6, 154),
+  ];
+
+  static const _days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 220,
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: Colors.black12),
       ),
-      child: LineChart(
-        LineChartData(
-          gridData: FlGridData(
-            show: true,
-            drawVerticalLine: false,
-            horizontalInterval: 0.5,
-            getDrawingHorizontalLine: (value) => FlLine(
-              color: Colors.grey.withValues(alpha: 0.18),
-              strokeWidth: 1,
-            ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Market momentum',
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: HomePage.green.withOpacity(0.14),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: const Text(
+                  '+12.4% this week',
+                  style: TextStyle(
+                    color: HomePage.green,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+            ],
           ),
-          borderData: FlBorderData(show: false),
-          titlesData: FlTitlesData(
-            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            bottomTitles: AxisTitles(
-              sideTitles: SideTitles(
-                showTitles: true,
-                reservedSize: 22,
-                getTitlesWidget: (value, meta) {
-                  const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-                  final i = value.toInt();
-                  if (i < 0 || i >= days.length) return const SizedBox.shrink();
-                  return Text(days[i], style: const TextStyle(fontSize: 10));
-                },
+          const SizedBox(height: 8),
+          const Text(
+            'Tomato demand across local markets is rising with stronger pricing and active buyer interest.',
+            style: TextStyle(fontSize: 13, color: HomePage.muted),
+          ),
+          const SizedBox(height: 18),
+          SizedBox(
+            height: 192,
+            child: LineChart(
+              LineChartData(
+                gridData: FlGridData(
+                  show: true,
+                  drawVerticalLine: false,
+                  horizontalInterval: 10,
+                  getDrawingHorizontalLine: (value) => FlLine(
+                    color: Colors.grey.withOpacity(0.18),
+                    strokeWidth: 1,
+                  ),
+                ),
+                borderData: FlBorderData(show: false),
+                titlesData: FlTitlesData(
+                  topTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                  rightTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                  leftTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 40,
+                      interval: 10,
+                      getTitlesWidget: (value, meta) {
+                        if (value % 20 != 0) return const SizedBox.shrink();
+                        return Text(
+                          '${value.toInt()}',
+                          style: const TextStyle(fontSize: 10),
+                        );
+                      },
+                    ),
+                  ),
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 24,
+                      getTitlesWidget: (value, meta) {
+                        final index = value.toInt();
+                        if (index < 0 || index >= _days.length) {
+                          return const SizedBox.shrink();
+                        }
+
+                        return Text(
+                          _days[index],
+                          style: const TextStyle(fontSize: 10),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+                lineBarsData: [
+                  LineChartBarData(
+                    spots: _spots,
+                    isCurved: true,
+                    color: HomePage.green,
+                    barWidth: 3,
+                    dotData: const FlDotData(show: false),
+                    belowBarData: BarAreaData(
+                      show: true,
+                      color: HomePage.green.withOpacity(0.12),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
-          lineBarsData: [
-            LineChartBarData(
-              spots: const [
-                FlSpot(0, 1.6),
-                FlSpot(1, 2.0),
-                FlSpot(2, 1.8),
-                FlSpot(3, 2.4),
-                FlSpot(4, 2.6),
-                FlSpot(5, 2.9),
-                FlSpot(6, 3.1),
-              ],
-              isCurved: true,
-              color: HomePage.green,
-              barWidth: 3,
-              dotData: const FlDotData(show: false),
-              belowBarData: BarAreaData(
-                show: true,
-                color: HomePage.green.withValues(alpha: 0.10),
-              ),
-            ),
-          ],
-        ),
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: const [
+              _MomentumInfoChip(label: 'Top crop', value: 'Tomatoes'),
+              _MomentumInfoChip(label: 'Demand', value: 'High'),
+              _MomentumInfoChip(label: 'Active markets', value: '6'),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MomentumInfoChip extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _MomentumInfoChip({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            '$label: ',
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+          ),
+          Text(
+            value,
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+          ),
+        ],
       ),
     );
   }
@@ -594,7 +714,10 @@ class _WeatherCropSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: const [
-          Text('Weather', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+          Text(
+            'Weather',
+            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+          ),
           SizedBox(height: 8),
           Text('Chiredzi, 24°C'),
           SizedBox(height: 4),
@@ -615,32 +738,67 @@ class _WeatherCropSection extends StatelessWidget {
       ),
     );
 
-    final crop = Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.black12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('Crop health', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
-          const SizedBox(height: 10),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: Image.network(
-              'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1200&q=80',
-              height: 160,
-              width: double.infinity,
-              fit: BoxFit.cover,
+    final crop = GestureDetector(
+      onTap: () {
+        Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (_) => const CropHealthPage()));
+      },
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: Colors.black12),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Crop health',
+              style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
             ),
-          ),
-          const SizedBox(height: 10),
-          const Text('NDVI score: 0.63'),
-          const SizedBox(height: 3),
-          const Text('Status: Moderate'),
-        ],
+            const SizedBox(height: 10),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.network(
+                'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1200&q=80',
+                height: 160,
+                width: double.infinity,
+                fit: BoxFit.cover,
+              ),
+            ),
+            const SizedBox(height: 10),
+            const Text('NDVI score: 0.63'),
+            const SizedBox(height: 3),
+            const Text('Status: Moderate'),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: HomePage.green.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: const [
+                  Text(
+                    'View details',
+                    style: TextStyle(
+                      color: HomePage.green,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  Icon(
+                    Icons.arrow_forward_ios,
+                    size: 14,
+                    color: HomePage.green,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
 
@@ -655,13 +813,7 @@ class _WeatherCropSection extends StatelessWidget {
                   Expanded(child: crop),
                 ],
               )
-            : Column(
-                children: [
-                  weather,
-                  const SizedBox(height: 12),
-                  crop,
-                ],
-              );
+            : Column(children: [weather, const SizedBox(height: 12), crop]);
       },
     );
   }
@@ -671,17 +823,17 @@ class _SectionTitle extends StatelessWidget {
   final String title;
   final String subtitle;
 
-  const _SectionTitle({
-    required this.title,
-    required this.subtitle,
-  });
+  const _SectionTitle({required this.title, required this.subtitle});
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+        Text(
+          title,
+          style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+        ),
         const SizedBox(height: 4),
         Text(subtitle, style: TextStyle(fontSize: 13, color: HomePage.muted)),
       ],
@@ -713,7 +865,10 @@ class _QuickActions extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Quick actions', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+        const Text(
+          'Quick actions',
+          style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+        ),
         const SizedBox(height: 10),
         GridView.builder(
           shrinkWrap: true,
@@ -740,6 +895,169 @@ class _QuickActions extends StatelessWidget {
               ),
             );
           },
+        ),
+      ],
+    );
+  }
+}
+
+class _LiveClockWidget extends StatefulWidget {
+  const _LiveClockWidget();
+
+  @override
+  State<_LiveClockWidget> createState() => _LiveClockWidgetState();
+}
+
+class _LiveClockWidgetState extends State<_LiveClockWidget> {
+  late Timer _timer;
+  late DateTime _currentTime;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentTime = DateTime.now();
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (mounted) {
+        setState(() {
+          _currentTime = DateTime.now();
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final formatter = DateFormat('EEEE, d MMMM yyyy • hh:mm:ss a');
+    return Text(
+      formatter.format(_currentTime),
+      style: GoogleFonts.inter(
+        fontSize: 12.5,
+        fontWeight: FontWeight.w600,
+        color: Colors.white.withOpacity(0.9),
+      ),
+    );
+  }
+}
+
+class _MarketActivitiesCard extends StatelessWidget {
+  const _MarketActivitiesCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final activities = [
+      (
+        'Tomato price up by 8% in Chiredzi region.',
+        '2 mins ago',
+        Icons.trending_up,
+        Colors.orange,
+      ),
+      (
+        'Sunrise Poultry listed a new yield of 52 trays of Eggs.',
+        '15 mins ago',
+        Icons.add_shopping_cart,
+        Colors.green,
+      ),
+      (
+        'Van ZW-14 driver dispatch scheduled to Harare Market.',
+        '35 mins ago',
+        Icons.local_shipping,
+        Colors.purple,
+      ),
+      (
+        'FreshMart Ltd completed purchase of 120 kg Tomatoes from Mufasa Farm.',
+        '1 hr ago',
+        Icons.check_circle,
+        Colors.blue,
+      ),
+      (
+        'Maize demand increased by 15% in Masvingo Depot.',
+        '2 hrs ago',
+        Icons.bar_chart,
+        Colors.teal,
+      ),
+    ];
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.black12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (int i = 0; i < activities.length; i++) ...[
+            _buildActivityItem(
+              title: activities[i].$1,
+              time: activities[i].$2,
+              icon: activities[i].$3,
+              color: activities[i].$4,
+              isLast: i == activities.length - 1,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActivityItem({
+    required String title,
+    required String time,
+    required IconData icon,
+    required Color color,
+    required bool isLast,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Column(
+          children: [
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: color, size: 16),
+            ),
+            if (!isLast)
+              Container(width: 2, height: 34, color: Colors.grey.shade200),
+          ],
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: GoogleFonts.inter(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF0F172A),
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                time,
+                style: GoogleFonts.inter(
+                  fontSize: 11,
+                  color: const Color(0xFF64748B),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+          ),
         ),
       ],
     );

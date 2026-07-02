@@ -6,6 +6,8 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../../data/mock_app_data.dart';
 import '../../../state/cart_state.dart';
+import '../../../state/app_state.dart';
+import '../../../state/chat_state.dart';
 import '../../../widgets/cart_drawer.dart';
 
 class MarketplacePage extends ConsumerStatefulWidget {
@@ -38,10 +40,12 @@ class _MarketplacePageState extends ConsumerState<MarketplacePage>
   String _selectedLocation = 'All';
   String _selectedType = 'All';
   String _selectedPriceRange = 'All';
+  late List<MarketplaceProduct> _allProducts;
 
   @override
   void initState() {
     super.initState();
+    _allProducts = List.from(MockAppData.products);
     _tabController = TabController(length: _categories.length, vsync: this);
     _tabController.addListener(() {
       if (!mounted) return;
@@ -60,7 +64,7 @@ class _MarketplacePageState extends ConsumerState<MarketplacePage>
     final search = _searchController.text.trim().toLowerCase();
     final tab = _categories[_tabController.index];
 
-    return MockAppData.products.where((p) {
+    return _allProducts.where((p) {
       final matchesSearch = search.isEmpty ||
           p.name.toLowerCase().contains(search) ||
           p.description.toLowerCase().contains(search) ||
@@ -88,6 +92,117 @@ class _MarketplacePageState extends ConsumerState<MarketplacePage>
           matchesType &&
           matchesPrice;
     }).toList();
+  }
+
+  void _showAddProductDialog() {
+    final nameController = TextEditingController();
+    final priceController = TextEditingController();
+    final quantityController = TextEditingController();
+    final descController = TextEditingController();
+    String selectedCategory = _categories[1]; // default Grains
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              title: const Text('List New Product'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: nameController,
+                      decoration: const InputDecoration(labelText: 'Product Name', hintText: 'e.g. Soybeans'),
+                    ),
+                    const SizedBox(height: 8),
+                    DropdownButtonFormField<String>(
+                      value: selectedCategory,
+                      decoration: const InputDecoration(labelText: 'Category'),
+                      items: _categories
+                          .where((c) => c != 'All')
+                          .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                          .toList(),
+                      onChanged: (v) {
+                        if (v != null) {
+                          setDialogState(() => selectedCategory = v);
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: priceController,
+                      decoration: const InputDecoration(labelText: 'Price', hintText: 'e.g. 0.35/kg'),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: quantityController,
+                      decoration: const InputDecoration(labelText: 'Quantity Available', hintText: 'e.g. 200 kg available'),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: descController,
+                      decoration: const InputDecoration(labelText: 'Description'),
+                      maxLines: 2,
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    final name = nameController.text.trim();
+                    final price = priceController.text.trim();
+                    final qty = quantityController.text.trim();
+                    final desc = descController.text.trim();
+
+                    if (name.isEmpty || price.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Please fill Name and Price fields.')),
+                      );
+                      return;
+                    }
+
+                    final newProduct = MarketplaceProduct(
+                      name: name,
+                      category: selectedCategory,
+                      description: desc.isEmpty ? 'High-quality agricultural product listed on Verdi.' : desc,
+                      price: price.startsWith('\$') ? price : '\$$price',
+                      seller: 'Mufasa Farm',
+                      location: 'Chiredzi',
+                      quantity: qty.isEmpty ? '100 kg available' : qty,
+                      distance: '0.0 km',
+                      imageUrl: 'https://images.unsplash.com/photo-1592417817098-8f3d6eb19675?auto=format&fit=crop&w=900&q=80',
+                    );
+
+                    setState(() {
+                      _allProducts.insert(0, newProduct);
+                    });
+
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('$name listed successfully!')),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: green,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  child: const Text('Submit Listing'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 
   int _gridCount(double width) {
@@ -224,6 +339,29 @@ class _MarketplacePageState extends ConsumerState<MarketplacePage>
                 ],
               ),
               const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    ref.read(chatProvider.notifier).startOrGetThread(
+                          product.seller,
+                          'Inquiries about ${product.name}',
+                          'Hello! I saw your listing for ${product.name} on the marketplace. Is it still available?',
+                        );
+                    ref.read(appStateProvider.notifier).setNavIndex(2); // Go to Chats
+                  },
+                  icon: const Icon(Icons.chat_bubble_outline),
+                  label: const Text('Chat with Seller'),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    backgroundColor: Colors.blue.shade600,
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
               Row(
                 children: [
                   Expanded(
@@ -302,6 +440,20 @@ class _MarketplacePageState extends ConsumerState<MarketplacePage>
                                 ),
                               ),
                             ),
+                            OutlinedButton.icon(
+                              onPressed: _showAddProductDialog,
+                              icon: const Icon(Icons.add, size: 18),
+                              label: const Text('List Product'),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: green,
+                                side: const BorderSide(color: green),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
                             Badge(
                               label: Text('$cartCount'),
                               isLabelVisible: cartCount > 0,
@@ -408,6 +560,14 @@ class _MarketplacePageState extends ConsumerState<MarketplacePage>
                                     ),
                                   );
                                 });
+                              },
+                              onChatWithOwner: () {
+                                ref.read(chatProvider.notifier).startOrGetThread(
+                                      products[index].seller,
+                                      'Inquiries about ${products[index].name}',
+                                      'Hello! I saw your listing for ${products[index].name} on the marketplace. Is it still available?',
+                                    );
+                                ref.read(appStateProvider.notifier).setNavIndex(2);
                               },
                               isMobile: isMobile,
                             );
@@ -553,12 +713,14 @@ class _ProductCard extends StatelessWidget {
   final MarketplaceProduct product;
   final VoidCallback onAddToCart;
   final VoidCallback onViewDetails;
+  final VoidCallback onChatWithOwner;
   final bool isMobile;
 
   const _ProductCard({
     required this.product,
     required this.onAddToCart,
     required this.onViewDetails,
+    required this.onChatWithOwner,
     required this.isMobile,
   });
 
@@ -692,25 +854,35 @@ class _ProductCard extends StatelessWidget {
                                 ),
                               ),
                               child: const Text(
-                                'Add to Cart',
+                                'Add',
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                                style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
                               ),
                             ),
                           ),
-                          const SizedBox(width: 6),
+                          const SizedBox(width: 4),
+                          IconButton(
+                            onPressed: onChatWithOwner,
+                            icon: const Icon(Icons.chat_bubble_outline, size: 16, color: Colors.blue),
+                            style: IconButton.styleFrom(
+                              backgroundColor: Colors.blue.shade50,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              padding: const EdgeInsets.all(8),
+                            ),
+                          ),
+                          const SizedBox(width: 4),
                           OutlinedButton(
                             onPressed: onViewDetails,
                             style: OutlinedButton.styleFrom(
                               foregroundColor: _MarketplacePageState.green,
                               side: const BorderSide(color: _MarketplacePageState.green),
-                              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+                              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
                             ),
-                            child: const Icon(Icons.info_outline, size: 18),
+                            child: const Icon(Icons.info_outline, size: 16),
                           ),
                         ],
                       )
@@ -731,13 +903,23 @@ class _ProductCard extends StatelessWidget {
                               child: const Text('Add to Cart'),
                             ),
                           ),
-                          const SizedBox(width: 8),
+                          const SizedBox(width: 6),
+                          IconButton(
+                            onPressed: onChatWithOwner,
+                            icon: const Icon(Icons.chat_bubble_outline, size: 18, color: Colors.blue),
+                            style: IconButton.styleFrom(
+                              backgroundColor: Colors.blue.shade50,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              padding: const EdgeInsets.all(10),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
                           OutlinedButton(
                             onPressed: onViewDetails,
                             style: OutlinedButton.styleFrom(
                               foregroundColor: _MarketplacePageState.green,
                               side: const BorderSide(color: _MarketplacePageState.green),
-                              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+                              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(14),
                               ),

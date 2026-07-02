@@ -13,9 +13,6 @@ class FinanceViewModel extends PageViewModel {
 
     await Future.delayed(const Duration(seconds: 2));
 
-    setError(
-      title: 'Finance unavailable',
-      message: 'We could not connect to the finance service.',
-    );
+    setContent();
   }
 }

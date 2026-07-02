@@ -1,46 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../state/chat_state.dart';
 
-class AssistantPage extends StatefulWidget {
+class AssistantPage extends ConsumerStatefulWidget {
   const AssistantPage({super.key});
 
   @override
-  State<AssistantPage> createState() => _AssistantPageState();
+  ConsumerState<AssistantPage> createState() => _AssistantPageState();
 }
 
-class _AssistantPageState extends State<AssistantPage> {
+class _AssistantPageState extends ConsumerState<AssistantPage> {
   final TextEditingController _inputController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-
-  final List<_ChatThread> _threads = [
-    _ChatThread(
-      title: 'Farm Planning',
-      subtitle: 'Plan tomorrow’s planting schedule',
-      messages: [
-        _ChatMessage(text: 'Good morning Sir Mufasa, how can I help today?', isUser: false),
-        _ChatMessage(text: 'Create a planting plan for tomatoes and maize.', isUser: true),
-        _ChatMessage(text: 'I can do that. How many hectares are you using?', isUser: false),
-      ],
-    ),
-    _ChatThread(
-      title: 'Market Pricing',
-      subtitle: 'Compare today’s crop prices',
-      messages: [
-        _ChatMessage(text: 'Track tomato, maize, and onion prices.', isUser: true),
-        _ChatMessage(text: 'Tomatoes are trending up, maize is stable, onions are slightly lower.', isUser: false),
-      ],
-    ),
-    _ChatThread(
-      title: 'Delivery Support',
-      subtitle: 'Check transport availability',
-      messages: [
-        _ChatMessage(text: 'Which trucks are available near Chiredzi?', isUser: true),
-        _ChatMessage(text: 'Two trucks are available within 10 km and one is ready now.', isUser: false),
-      ],
-    ),
-  ];
-
-  int _selectedThread = 0;
   bool _typing = false;
 
   @override
@@ -50,21 +22,68 @@ class _AssistantPageState extends State<AssistantPage> {
     super.dispose();
   }
 
+  Future<void> _sendMessage() async {
+    final text = _inputController.text.trim();
+    if (text.isEmpty) return;
+
+    final notifier = ref.read(chatProvider.notifier);
+
+    notifier.sendMessage(text);
+    _inputController.clear();
+    _scrollToBottom();
+
+    setState(() {
+      _typing = true;
+    });
+
+    await Future.delayed(const Duration(seconds: 1));
+
+    if (!mounted) return;
+
+    notifier.receiveMessage('Understood. I will help with that next.');
+    setState(() {
+      _typing = false;
+    });
+    _scrollToBottom();
+  }
+
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_scrollController.hasClients) return;
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent + 120,
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOut,
+      );
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+    final chatState = ref.watch(chatProvider);
+    final notifier = ref.read(chatProvider.notifier);
+    
     final width = MediaQuery.of(context).size.width;
     final isWide = width >= 1100;
-    final thread = _threads[_selectedThread];
+    
+    if (chatState.threads.isEmpty) {
+      return const Scaffold(
+        body: Center(child: Text('No conversation threads yet.')),
+      );
+    }
+
+    final thread = chatState.threads[chatState.selectedIndex];
 
     return Scaffold(
       body: SafeArea(
         child: Row(
           children: [
-            if (isWide) _ThreadPanel(
-              threads: _threads,
-              selectedIndex: _selectedThread,
-              onSelect: (i) => setState(() => _selectedThread = i),
-            ),
+            if (isWide)
+              _ThreadPanel(
+                threads: chatState.threads,
+                selectedIndex: chatState.selectedIndex,
+                onSelect: (i) => notifier.selectThread(i),
+              ),
             Expanded(
               child: Column(
                 children: [
@@ -98,68 +117,6 @@ class _AssistantPageState extends State<AssistantPage> {
       ),
     );
   }
-
-  Future<void> _sendMessage() async {
-    final text = _inputController.text.trim();
-    if (text.isEmpty) return;
-
-    setState(() {
-      _threads[_selectedThread].messages.add(_ChatMessage(text: text, isUser: true));
-      _typing = true;
-      _inputController.clear();
-    });
-
-    _scrollToBottom();
-
-    await Future.delayed(const Duration(seconds: 1));
-
-    if (!mounted) return;
-
-    setState(() {
-      _typing = false;
-      _threads[_selectedThread].messages.add(
-        _ChatMessage(
-          text: 'Understood. I will help with that next.',
-          isUser: false,
-        ),
-      );
-    });
-
-    _scrollToBottom();
-  }
-
-  void _scrollToBottom() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!_scrollController.hasClients) return;
-      _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent + 120,
-        duration: const Duration(milliseconds: 250),
-        curve: Curves.easeOut,
-      );
-    });
-  }
-}
-
-class _ChatThread {
-  final String title;
-  final String subtitle;
-  final List<_ChatMessage> messages;
-
-  _ChatThread({
-    required this.title,
-    required this.subtitle,
-    required this.messages,
-  });
-}
-
-class _ChatMessage {
-  final String text;
-  final bool isUser;
-
-  _ChatMessage({
-    required this.text,
-    required this.isUser,
-  });
 }
 
 class _AssistantHeader extends StatelessWidget {
@@ -213,7 +170,7 @@ class _AssistantHeader extends StatelessWidget {
 }
 
 class _ThreadPanel extends StatelessWidget {
-  final List<_ChatThread> threads;
+  final List<ChatThread> threads;
   final int selectedIndex;
   final ValueChanged<int> onSelect;
 
@@ -237,23 +194,28 @@ class _ThreadPanel extends StatelessWidget {
             style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 14),
-          ...List.generate(threads.length, (i) {
-            final t = threads[i];
-            final selected = i == selectedIndex;
-            return Card(
-              elevation: selected ? 2 : 0,
-              color: selected ? Colors.green.shade50 : Colors.white,
-              child: ListTile(
-                onTap: () => onSelect(i),
-                leading: CircleAvatar(
-                  backgroundColor: selected ? Colors.green.shade100 : Colors.grey.shade200,
-                  child: Icon(Icons.chat_bubble_outline, color: selected ? Colors.green : Colors.grey),
-                ),
-                title: Text(t.title),
-                subtitle: Text(t.subtitle),
-              ),
-            );
-          }),
+          Expanded(
+            child: ListView(
+              padding: EdgeInsets.zero,
+              children: List.generate(threads.length, (i) {
+                final t = threads[i];
+                final selected = i == selectedIndex;
+                return Card(
+                  elevation: selected ? 2 : 0,
+                  color: selected ? Colors.green.shade50 : Colors.white,
+                  child: ListTile(
+                    onTap: () => onSelect(i),
+                    leading: CircleAvatar(
+                      backgroundColor: selected ? Colors.green.shade100 : Colors.grey.shade200,
+                      child: Icon(Icons.chat_bubble_outline, color: selected ? Colors.green : Colors.grey),
+                    ),
+                    title: Text(t.title),
+                    subtitle: Text(t.subtitle, maxLines: 1, overflow: TextOverflow.ellipsis),
+                  ),
+                );
+              }),
+            ),
+          ),
         ],
       ),
     );
@@ -261,7 +223,7 @@ class _ThreadPanel extends StatelessWidget {
 }
 
 class _ChatBubble extends StatelessWidget {
-  final _ChatMessage message;
+  final ChatMessage message;
 
   const _ChatBubble({required this.message});
 
@@ -275,7 +237,7 @@ class _ChatBubble extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         constraints: const BoxConstraints(maxWidth: 520),
         decoration: BoxDecoration(
-          color: isUser ? Colors.green.shade600 : Colors.white,
+          color: isUser ? const Color(0xFF16A34A) : Colors.white,
           borderRadius: BorderRadius.circular(18),
           border: isUser ? null : Border.all(color: Colors.grey.shade200),
         ),
@@ -346,6 +308,8 @@ class _InputBar extends StatelessWidget {
           ElevatedButton(
             onPressed: onSend,
             style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF16A34A),
+              foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
